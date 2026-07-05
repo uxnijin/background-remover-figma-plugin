@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Background Remover</title>
+  <style>
+    /* Native Figma Styling Variables */
+    :root {
+      --font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      
+      /* Default fallback values matching Figma Light mode */
+      --figma-color-bg: #ffffff;
+      --figma-color-bg-secondary: #f5f5f5;
+      --figma-color-border: #e6e6e6;
+      --figma-color-border-hover: #b3b3b3;
+      --figma-color-text: #333333;
+      --figma-color-text-secondary: #888888;
+      --figma-color-bg-brand: #18a0fb;
+      --figma-color-text-onbrand: #ffffff;
+      --figma-color-bg-danger: #f24822;
+      --figma-color-bg-success: #14ae5c;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      background-color: var(--figma-color-bg);
+      color: var(--figma-color-text);
+      font-family: var(--font-family);
+      font-size: 12px;
+      overflow: hidden;
+    }
+
+    /* Core container stretching and styling */
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 16px;
+      justify-content: space-between;
+    }
+
+    .main-content {
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+    }
+
+    .label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--figma-color-text-secondary);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    /* Buttons */
+    .figma-btn {
+      height: 32px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0 16px;
+      border: 1px solid transparent;
+      transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+      gap: 6px;
+      text-decoration: none;
+    }
+
+    .primary-btn {
+      background-color: var(--figma-color-bg-brand);
+      color: var(--figma-color-text-onbrand);
+    }
+    .primary-btn:hover {
+      opacity: 0.9;
+    }
+    .primary-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .secondary-btn {
+      background-color: transparent;
+      color: var(--figma-color-text);
+      border: 1px solid var(--figma-color-border);
+    }
+    .secondary-btn:hover {
+      background-color: var(--figma-color-bg-secondary);
+      border-color: var(--figma-color-border-hover);
+    }
+    .secondary-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .action-btn-block {
+      width: 100%;
+    }
+
+    /* Custom Selection Card */
+    .selection-card {
+      border-radius: 4px;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .selection-card.empty {
+      border: 1px dashed var(--figma-color-border);
+      background-color: var(--figma-color-bg-secondary);
+      cursor: pointer;
+    }
+    .selection-card.empty:hover {
+      border-color: var(--figma-color-border-hover);
+    }
+    .selection-card.empty.dragover {
+      border-color: var(--figma-color-bg-brand);
+      background-color: rgba(24, 160, 251, 0.05);
+    }
+
+    .selection-card.selected {
+      border: 1px solid var(--figma-color-border);
+      background-color: var(--figma-color-bg);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    }
+
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      display: inline-block;
+      transition: background-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .empty .status-dot {
+      background-color: var(--figma-color-bg-danger);
+      box-shadow: 0 0 6px var(--figma-color-bg-danger);
+    }
+
+    .selected .status-dot {
+      background-color: var(--figma-color-bg-success);
+      box-shadow: 0 0 6px var(--figma-color-bg-success);
+    }
+
+    .status-text {
+      font-weight: 600;
+      color: var(--figma-color-text);
+      font-size: 11px;
+    }
+
+    .selection-details {
+      font-size: 11px;
+      color: var(--figma-color-text-secondary);
+      line-height: 1.4;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .empty .selection-details {
+      white-space: normal;
+    }
+
+    .upload-action-row {
+      display: flex;
+      justify-content: flex-start;
+      margin-top: 4px;
+    }
+
+    .upload-action-row .figma-btn {
+      height: 24px;
+      padding: 0 8px;
+      font-size: 11px;
+      border-radius: 3px;
+    }
+
+    /* Custom Dropdown select styled chevron */
+    .figma-select-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    .figma-select {
+      width: 100%;
+      height: 32px;
+      background-color: var(--figma-color-bg);
+      border: 1px solid var(--figma-color-border);
+      color: var(--figma-color-text);
+      font-family: inherit;
+      font-size: 12px;
+      padding: 0 28px 0 8px;
+      border-radius: 3px;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      transition: border-color 0.15s ease;
+    }
+
+    .figma-select:hover {
+      border-color: var(--figma-color-border-hover);
+    }
+
+    .figma-select:focus {
+      border-color: var(--figma-color-bg-brand);
+      box-shadow: 0 0 0 1px var(--figma-color-bg-brand);
+    }
+
+    .select-arrow {
+      position: absolute;
+      top: 50%;
+      right: 10px;
+      width: 6px;
+      height: 6px;
+      border-right: 1.5px solid var(--figma-color-text-secondary);
+      border-bottom: 1.5px solid var(--figma-color-text-secondary);
+      transform: translateY(-65%) rotate(45deg);
+      pointer-events: none;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .figma-select:focus + .select-arrow {
+      border-color: var(--figma-color-text);
+      transform: translateY(-35%) rotate(-135deg);
+    }
+
+    /* Checkered Transparent Preview Box */
+    .checkered-preview {
+      width: 100%;
+      height: 180px;
+      border: 1px solid var(--figma-color-border);
+      border-radius: 4px;
+      background-color: #f0f0f0;
+      background-image: 
+        linear-gradient(45deg, #e0e0e0 25%, transparent 25%, transparent 75%, #e0e0e0 75%, #e0e0e0), 
+        linear-gradient(45deg, #e0e0e0 25%, #ffffff 25%, #ffffff 75%, #e0e0e0 75%, #e0e0e0);
+      background-size: 16px 16px;
+      background-position: 0 0, 8px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    /* Adapts checkerboard in Dark Mode */
+    .figma-dark .checkered-preview {
+      background-color: #1e1e1e;
+      background-image: 
+        linear-gradient(45deg, #2a2a2a 25%, transparent 25%, transparent 75%, #2a2a2a 75%, #2a2a2a), 
+        linear-gradient(45deg, #2a2a2a 25%, #121212 25%, #121212 75%, #2a2a2a 75%, #2a2a2a);
+    }
+
+    .checkered-preview img {
+      max-width: 90%;
+      max-height: 90%;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
+    }
+
+    /* Views toggle */
+    .view {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      flex-grow: 1;
+    }
+
+    /* Progress States */
+    .progress-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 220px;
+      gap: 16px;
+    }
+
+    .spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid var(--figma-color-border);
+      border-top: 3px solid var(--figma-color-bg-brand);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .progress-status {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--figma-color-text);
+      text-align: center;
+    }
+
+    .progress-track {
+      width: 80%;
+      height: 6px;
+      background-color: var(--figma-color-bg-secondary);
+      border-radius: 3px;
+      overflow: hidden;
+      border: 1px solid var(--figma-color-border);
+    }
+
+    .progress-bar {
+      height: 100%;
+      background-color: var(--figma-color-bg-brand);
+      width: 0%;
+      transition: width 0.15s ease;
+    }
+
+    .progress-percent {
+      font-size: 11px;
+      color: var(--figma-color-text-secondary);
+      font-weight: 600;
+    }
+
+    /* Button columns and layout */
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 8px;
+      width: 100%;
+    }
+
+    .btn-group .figma-btn {
+      flex: 1;
+    }
+
+    .link-btn {
+      background: transparent;
+      border: none;
+      color: var(--figma-color-text-secondary);
+      font-size: 11px;
+      cursor: pointer;
+      align-self: center;
+      height: 24px;
+      margin: 8px auto 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .link-btn:hover {
+      color: var(--figma-color-text);
+      text-decoration: underline;
+    }
+
+    /* Error View */
+    .error-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 220px;
+      gap: 12px;
+      text-align: center;
+      padding: 0 16px;
+    }
+
+    .error-icon {
+      width: 36px;
+      height: 36px;
+      color: var(--figma-color-bg-danger);
+    }
+
+    .error-message {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--figma-color-text);
+    }
+
+    /* Footer developer credits */
+    .footer {
+      font-size: 10px;
+      color: var(--figma-color-text-secondary);
+      text-align: center;
+      margin-top: auto;
+      padding-top: 10px;
+      border-top: 1px solid var(--figma-color-border);
+    }
+
+    .footer-link {
+      color: var(--figma-color-text-secondary);
+      text-decoration: underline;
+      font-weight: 500;
+      transition: color 0.15s ease;
+    }
+
+    .footer-link:hover {
+      color: var(--figma-color-text);
+    }
+
+    /* Helper utilities */
+    .icon {
+      width: 12px;
+      height: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <div class="main-content">
+      
+      <!-- VIEW 1: SETUP / INPUT SELECTION -->
+      <div id="view-setup" class="view">
+        <div class="form-group">
+          <div class="label">Image Source</div>
+          
+          <!-- Selection status card -->
+          <div id="selection-card" class="selection-card empty">
+            <div class="status-indicator">
+              <span class="status-dot"></span>
+              <span id="status-text" class="status-text">No image selected</span>
+            </div>
+            <div id="selection-details" class="selection-details">
+              Select an image or layer in Figma, or upload a local file.
+            </div>
+            <div class="upload-action-row">
+              <button class="figma-btn secondary-btn" id="upload-btn">
+                <svg class="icon" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M6 2V10M6 2L3 5M6 2L9 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Upload File
+              </button>
+              <button class="figma-btn secondary-btn" id="clear-file-btn" style="display: none; margin-left: 8px;">
+                Reset Selection
+              </button>
+              <input type="file" id="file-input" accept="image/*" style="display: none;" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="label">Image Quality</div>
+          <div class="figma-select-wrapper">
+            <select id="model-select" class="figma-select">
+              <option value="medium" selected>High Quality (takes longer to load)</option>
+              <option value="small">Standard Quality (fastest load)</option>
+            </select>
+            <div class="select-arrow"></div>
+          </div>
+        </div>
+
+        <button class="figma-btn primary-btn action-btn-block" id="remove-btn" disabled>
+          Remove Background
+        </button>
+      </div>
+
+      <!-- VIEW 2: PROCESSING STATE -->
+      <div id="view-processing" class="view" style="display: none;">
+        <div class="progress-container">
+          <div class="spinner"></div>
+          <div class="progress-status" id="progress-status">Exporting layer...</div>
+          <div class="progress-track">
+            <div class="progress-bar" id="progress-bar" style="width: 0%;"></div>
+          </div>
+          <div class="progress-percent" id="progress-percent">0%</div>
+        </div>
+      </div>
+
+      <!-- VIEW 3: SUCCESS RESULT STATE -->
+      <div id="view-result" class="view" style="display: none;">
+        <div class="checkered-preview">
+          <img id="result-image" src="" alt="Background removed result preview" />
+        </div>
+        <div class="btn-group">
+          <button class="figma-btn primary-btn" id="paste-btn">Paste to Figma</button>
+          <button class="figma-btn secondary-btn" id="download-btn">Download PNG</button>
+        </div>
+        <button class="figma-btn secondary-btn action-btn-block" id="reset-btn">
+          <svg class="icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
+            <path d="M10 6H2M2 6L5 3M2 6L5 9"/>
+          </svg>
+          Remove Another Image
+        </button>
+      </div>
+
+      <!-- VIEW 4: ERROR STATE -->
+      <div id="view-error" class="view" style="display: none;">
+        <div class="error-container">
+          <svg class="error-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 9V14M12 17.01H12.01M12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="error-message" id="error-message">Something went wrong.</div>
+          <button class="link-btn" id="error-back-btn">
+            Go Back
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Muted credits footer -->
+    <footer class="footer">
+      designed and developed by <a href="https://nijin.site" target="_blank" class="footer-link">Nijin</a>
+    </footer>
+  </div>
+
+  <!-- Dynamic Logic & ESM CDN import of @imgly/background-removal -->
+  <script type="module">
+    // Import the background removal library directly from CDN
+    import { removeBackground } from 'https://cdn.jsdelivr.net/npm/@imgly/background-removal@1.7.0/+esm';
+
+    // State Variables
+    let currentFigmaSelection = null;
+    let currentUploadedFile = null;
+    let processedBlob = null;
+    let activeImageName = "Image";
+    let activeImageWidth = 300;
+    let activeImageHeight = 300;
+
+    // DOM References
+    const viewSetup = document.getElementById('view-setup');
+    const viewProcessing = document.getElementById('view-processing');
+    const viewResult = document.getElementById('view-result');
+    const viewError = document.getElementById('view-error');
+
+    const selectionCard = document.getElementById('selection-card');
+    const statusText = document.getElementById('status-text');
+    const selectionDetails = document.getElementById('selection-details');
+    const uploadBtn = document.getElementById('upload-btn');
+    const clearFileBtn = document.getElementById('clear-file-btn');
+    const fileInput = document.getElementById('file-input');
+    const modelSelect = document.getElementById('model-select');
+    const removeBtn = document.getElementById('remove-btn');
+
+    const progressStatus = document.getElementById('progress-status');
+    const progressBar = document.getElementById('progress-bar');
+    const progressPercent = document.getElementById('progress-percent');
+
+    const resultImage = document.getElementById('result-image');
+    const pasteBtn = document.getElementById('paste-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    const resetBtn = document.getElementById('reset-btn');
+
+    const errorMessage = document.getElementById('error-message');
+    const errorBackBtn = document.getElementById('error-back-btn');
+
+    // UI View Transitioner
+    function showView(viewToShow) {
+      const views = [viewSetup, viewProcessing, viewResult, viewError];
+      views.forEach(v => {
+        v.style.display = (v === viewToShow) ? 'flex' : 'none';
+      });
+    }
+
+    // Update the visual selection card based on state
+    function updateSelectionCard() {
+      if (currentUploadedFile) {
+        // Local File State
+        selectionCard.classList.remove('empty');
+        selectionCard.classList.add('selected');
+        statusText.innerText = "Local file ready";
+        
+        const sizeInKB = Math.round(currentUploadedFile.size / 1024);
+        selectionDetails.innerText = `${currentUploadedFile.name} (${sizeInKB} KB)`;
+        
+        clearFileBtn.style.display = 'inline-flex';
+        uploadBtn.style.display = 'none';
+        removeBtn.disabled = false;
+      } else if (currentFigmaSelection && currentFigmaSelection.selected) {
+        // Figma Selection State
+        selectionCard.classList.remove('empty');
+        selectionCard.classList.add('selected');
+        statusText.innerText = "Figma selection ready";
+        
+        const w = Math.round(currentFigmaSelection.width);
+        const h = Math.round(currentFigmaSelection.height);
+        selectionDetails.innerText = `"${currentFigmaSelection.nodeName}" (${currentFigmaSelection.nodeType} • ${w}×${h})`;
+        
+        clearFileBtn.style.display = 'none';
+        uploadBtn.style.display = 'inline-flex';
+        removeBtn.disabled = false;
+      } else {
+        // No Selection State
+        selectionCard.classList.remove('selected');
+        selectionCard.classList.add('empty');
+        statusText.innerText = "No image selected";
+        selectionDetails.innerText = "Select an image or layer in Figma, or upload a local file.";
+        
+        clearFileBtn.style.display = 'none';
+        uploadBtn.style.display = 'inline-flex';
+        removeBtn.disabled = true;
+      }
+    }
+
+    // Reset setup inputs
+    function resetSetup() {
+      currentUploadedFile = null;
+      processedBlob = null;
+      if (resultImage.src) {
+        URL.revokeObjectURL(resultImage.src);
+        resultImage.src = "";
+      }
+      fileInput.value = "";
+      updateSelectionCard();
+      showView(viewSetup);
+    }
+
+    // Drag and Drop implementation for upload zone
+    selectionCard.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (selectionCard.classList.contains('empty')) {
+        selectionCard.classList.add('dragover');
+      }
+    });
+
+    selectionCard.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      selectionCard.classList.remove('dragover');
+    });
+
+    selectionCard.addEventListener('drop', (e) => {
+      e.preventDefault();
+      selectionCard.classList.remove('dragover');
+      
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        const file = e.dataTransfer.files[0];
+        if (file.type.startsWith('image/')) {
+          currentUploadedFile = file;
+          currentFigmaSelection = null; // Override Figma selection
+          updateSelectionCard();
+        } else {
+          parent.postMessage({ pluginMessage: { type: 'notify', message: 'Error: Please upload image files only.' } }, '*');
+        }
+      }
+    });
+
+    // Clicks on empty Selection Card trigger file upload
+    selectionCard.addEventListener('click', (e) => {
+      // Don't trigger if clicked on buttons
+      if (e.target.closest('.figma-btn')) return;
+      if (selectionCard.classList.contains('empty')) {
+        fileInput.click();
+      }
+    });
+
+    // Upload button click
+    uploadBtn.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    // File input selection
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        currentUploadedFile = e.target.files[0];
+        currentFigmaSelection = null; // Override Figma selection
+        updateSelectionCard();
+      }
+    });
+
+    // Clear file selection
+    clearFileBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      resetSetup();
+    });
+
+    // Receive message from Figma Main Thread (code.ts)
+    window.onmessage = async (event) => {
+      const msg = event.data.pluginMessage;
+      if (!msg) return;
+
+      if (msg.type === 'selection-change') {
+        // Only update selection if there isn't a manually uploaded file
+        if (!currentUploadedFile) {
+          currentFigmaSelection = msg;
+          updateSelectionCard();
+        }
+      } 
+      
+      else if (msg.type === 'exporting-started') {
+        progressStatus.innerText = "Preparing your Figma layer...";
+        progressBar.style.width = "0%";
+        progressPercent.innerText = "0%";
+        showView(viewProcessing);
+      } 
+      
+      else if (msg.type === 'exported-image') {
+        // Figma Selection exported successfully, start processing
+        const blob = new Blob([msg.bytes], { type: 'image/png' });
+        activeImageName = msg.nodeName || "Figma Layer";
+        activeImageWidth = msg.width || 300;
+        activeImageHeight = msg.height || 300;
+        
+        runBackgroundRemoval(blob);
+      } 
+      
+      else if (msg.type === 'error') {
+        showError(msg.message);
+      }
+    };
+
+    // Run background removal process on the given image blob
+    async function runBackgroundRemoval(imageBlob) {
+      showView(viewProcessing);
+      progressStatus.innerText = "Warming up the background remover...";
+      progressBar.style.width = "0%";
+      progressPercent.innerText = "0%";
+
+      try {
+        const selectedModel = modelSelect.value;
+        
+        const config = {
+          model: selectedModel,
+          progress: (key, current, total) => {
+            const pct = Math.round((current / total) * 100) || 0;
+            let statusText = "Doing our magic...";
+            if (key === 'fetch') {
+              statusText = "Downloading AI graphics files (cached for next time)...";
+            } else if (key === 'onnx') {
+              statusText = "Isolating subject and erasing background...";
+            }
+            progressStatus.innerText = statusText;
+            progressBar.style.width = pct + '%';
+            progressPercent.innerText = pct + '%';
+          }
+        };
+
+        // Run the background removal process
+        const resultBlob = await removeBackground(imageBlob, config);
+        
+        processedBlob = resultBlob;
+        
+        // Show output result
+        const objectUrl = URL.createObjectURL(resultBlob);
+        resultImage.src = objectUrl;
+        
+        showView(viewResult);
+      } catch (err) {
+        console.error("Background removal error:", err);
+        showError("Failed to remove background. The image size might be too large or the WebAssembly context failed to initialize.");
+      }
+    }
+
+    // Triggered on click "Remove Background"
+    removeBtn.addEventListener('click', () => {
+      if (currentUploadedFile) {
+        // Process uploaded file
+        activeImageName = currentUploadedFile.name;
+        
+        // Try to read image dimensions
+        const img = new Image();
+        img.onload = () => {
+          activeImageWidth = img.naturalWidth;
+          activeImageHeight = img.naturalHeight;
+          runBackgroundRemoval(currentUploadedFile);
+        };
+        img.onerror = () => {
+          // Fallback if dimensions cannot be read
+          activeImageWidth = 400;
+          activeImageHeight = 400;
+          runBackgroundRemoval(currentUploadedFile);
+        };
+        img.src = URL.createObjectURL(currentUploadedFile);
+      } else if (currentFigmaSelection && currentFigmaSelection.selected) {
+        // Request figma code.ts to export selection
+        parent.postMessage({ pluginMessage: { type: 'export-selection' } }, '*');
+      }
+    });
+
+    // Paste processed image back to Figma
+    pasteBtn.addEventListener('click', async () => {
+      if (!processedBlob) return;
+      
+      pasteBtn.disabled = true;
+      pasteBtn.innerText = "Pasting...";
+      
+      try {
+        const buffer = await processedBlob.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        
+        parent.postMessage({
+          pluginMessage: {
+            type: 'paste-image',
+            bytes: bytes,
+            name: activeImageName,
+            width: activeImageWidth,
+            height: activeImageHeight
+          }
+        }, '*');
+      } catch (err) {
+        console.error("Paste error:", err);
+        parent.postMessage({ pluginMessage: { type: 'notify', message: 'Error: Failed to send image to Figma.' } }, '*');
+      } finally {
+        pasteBtn.disabled = false;
+        pasteBtn.innerText = "Paste to Figma";
+      }
+    });
+
+    // Download PNG locally
+    downloadBtn.addEventListener('click', () => {
+      if (!processedBlob) return;
+      
+      const cleanName = activeImageName.replace(/\.[^/.]+$/, "");
+      const filename = `${cleanName}_no_bg.png`;
+      
+      const url = URL.createObjectURL(processedBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+
+    // Reset button
+    resetBtn.addEventListener('click', () => {
+      resetSetup();
+    });
+
+    // Error handler
+    function showError(message) {
+      errorMessage.innerText = message;
+      showView(viewError);
+    }
+
+    errorBackBtn.addEventListener('click', () => {
+      resetSetup();
+    });
+  </script>
+</body>
+</html>
