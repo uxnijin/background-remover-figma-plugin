@@ -422,6 +422,115 @@
       color: var(--figma-color-text);
     }
 
+    /* Segmented Control Styling */
+    .figma-segmented-control {
+      display: flex;
+      background-color: var(--figma-color-bg-secondary);
+      border-radius: 6px;
+      padding: 2px;
+      gap: 2px;
+      border: 1px solid var(--figma-color-border);
+    }
+    .figma-segment {
+      flex: 1;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--figma-color-text-secondary);
+      cursor: pointer;
+      transition: background-color 0.15s, color 0.15s;
+    }
+    .figma-segment:hover {
+      color: var(--figma-color-text);
+    }
+    .figma-segment.active {
+      background-color: var(--figma-color-bg);
+      color: var(--figma-color-text);
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Editor View Styling */
+    .editor-canvas-container {
+      position: relative;
+      width: 100%;
+      height: 280px;
+      border: 1px solid var(--figma-color-border);
+      border-radius: 4px;
+      background-color: #f0f0f0;
+      background-image: 
+        linear-gradient(45deg, #e0e0e0 25%, transparent 25%, transparent 75%, #e0e0e0 75%, #e0e0e0), 
+        linear-gradient(45deg, #e0e0e0 25%, #ffffff 25%, #ffffff 75%, #e0e0e0 75%, #e0e0e0);
+      background-size: 16px 16px;
+      background-position: 0 0, 8px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+    .figma-dark .editor-canvas-container {
+      background-color: #1e1e1e;
+      background-image: 
+        linear-gradient(45deg, #2a2a2a 25%, transparent 25%, transparent 75%, #2a2a2a 75%, #2a2a2a), 
+        linear-gradient(45deg, #2a2a2a 25%, #121212 25%, #121212 75%, #2a2a2a 75%, #2a2a2a);
+    }
+    #editor-scroll-wrapper {
+      cursor: none; /* Hide default cursor to draw custom brush preview cursor */
+    }
+    #editor-scroll-wrapper::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    #editor-scroll-wrapper::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #editor-scroll-wrapper::-webkit-scrollbar-thumb {
+      background: var(--figma-color-border);
+      border-radius: 4px;
+    }
+    #editor-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+      background: var(--figma-color-border-hover);
+    }
+    #editor-canvas {
+      display: block;
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    .zoom-btn:hover {
+      background-color: var(--figma-color-bg-secondary) !important;
+    }
+    #brush-cursor {
+      position: fixed;
+      pointer-events: none;
+      border: 1.5px solid var(--figma-color-bg-brand); /* Figma blue */
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      display: none;
+      z-index: 9999;
+      box-shadow: 0 0 0 1px white, inset 0 0 0 0.5px white; /* High contrast borders */
+      box-sizing: border-box;
+    }
+    #brush-cursor::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 2px;
+      height: 2px;
+      background: var(--figma-color-bg-brand);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 0 0.5px white;
+    }
+
     /* Helper utilities */
     .icon {
       width: 12px;
@@ -496,10 +605,28 @@
         <div class="checkered-preview">
           <img id="result-image" src="" alt="Background removed result preview" />
         </div>
+        
+        <!-- Mask Offset Option -->
+        <div class="form-group" style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <div class="label" style="margin-bottom: 0;">Mask Offset (Expand / Contract)</div>
+            <span id="mask-offset-val" style="font-size: 11px; font-weight: 600; color: var(--figma-color-text-secondary);">0px</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="range" id="mask-offset-slider" min="-20" max="20" value="0" step="1" style="flex-grow: 1; accent-color: var(--figma-color-bg-brand); cursor: pointer;" />
+          </div>
+        </div>
+
         <div class="btn-group">
           <button class="figma-btn primary-btn" id="paste-btn">Paste to Figma</button>
           <button class="figma-btn secondary-btn" id="download-btn">Download PNG</button>
         </div>
+        <button class="figma-btn secondary-btn action-btn-block" id="edit-mask-btn" style="margin-bottom: 8px;">
+          <svg class="icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg" style="margin-right: 4px;">
+            <path d="M9.5 2.5a1.5 1.5 0 1 1 2.12 2.12L4.5 11.75H2.38v-2.12L9.5 2.5Z"/>
+          </svg>
+          Edit Mask (Brush)
+        </button>
         <button class="figma-btn secondary-btn action-btn-block" id="reset-btn">
           <svg class="icon" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">
             <path d="M10 6H2M2 6L5 3M2 6L5 9"/>
@@ -518,6 +645,48 @@
           <button class="link-btn" id="error-back-btn">
             Go Back
           </button>
+        </div>
+      </div>
+
+      <!-- VIEW 5: BRUSH EDITOR -->
+      <div id="view-editor" class="view" style="display: none;">
+        <div class="editor-canvas-container" id="editor-canvas-container">
+          <div id="editor-scroll-wrapper" style="width: 100%; height: 100%; overflow: auto; position: relative; display: block; box-sizing: border-box;">
+            <div class="canvas-padding-wrapper" style="padding: 150px; display: inline-flex; align-items: center; justify-content: center; min-width: 100%; min-height: 100%; box-sizing: border-box;">
+              <canvas id="editor-canvas"></canvas>
+            </div>
+          </div>
+          <!-- Positioned Zoom Controls -->
+          <div class="figma-zoom-controls" style="position: absolute; bottom: 8px; right: 8px; display: flex; align-items: center; gap: 2px; background: var(--figma-color-bg); border: 1px solid var(--figma-color-border); border-radius: 4px; padding: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.15); z-index: 10;">
+            <button type="button" class="zoom-btn" id="zoom-out-btn" style="width: 20px; height: 20px; border: none; background: transparent; color: var(--figma-color-text); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; border-radius: 2px; transition: background-color 0.1s;">−</button>
+            <span id="zoom-level-text" style="font-size: 10px; font-weight: 600; min-width: 32px; text-align: center; color: var(--figma-color-text-secondary);">100%</span>
+            <button type="button" class="zoom-btn" id="zoom-in-btn" style="width: 20px; height: 20px; border: none; background: transparent; color: var(--figma-color-text); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; border-radius: 2px; transition: background-color 0.1s;">+</button>
+          </div>
+        </div>
+        
+        <!-- Brush Mode Segmented Control -->
+        <div class="form-group" style="margin-bottom: 12px;">
+          <div class="label">Brush Mode</div>
+          <div class="figma-segmented-control">
+            <button type="button" class="figma-segment active" id="btn-brush-erase">Erase</button>
+            <button type="button" class="figma-segment" id="btn-brush-restore">Restore</button>
+          </div>
+        </div>
+
+        <!-- Brush Size Slider -->
+        <div class="form-group" style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <div class="label" style="margin-bottom: 0;">Brush Size</div>
+            <span id="brush-size-val" style="font-size: 11px; font-weight: 600; color: var(--figma-color-text-secondary);">15px</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="range" id="brush-size-slider" min="1" max="100" value="15" style="flex-grow: 1; accent-color: var(--figma-color-bg-brand); cursor: pointer;" />
+          </div>
+        </div>
+
+        <div class="btn-group">
+          <button class="figma-btn primary-btn" id="editor-done-btn">Done</button>
+          <button class="figma-btn secondary-btn" id="editor-cancel-btn">Cancel</button>
         </div>
       </div>
 
@@ -542,11 +711,32 @@
     let activeImageWidth = 300;
     let activeImageHeight = 300;
 
+    // State Variables for Mask Morphing
+    let originalImageBlob = null;
+    let baseForegroundBlob = null;
+    let originalImgElement = null;
+    let foregroundImgElement = null;
+    let baseMaskAlpha = null;
+    let morphingInProgress = false;
+
+    // Brush Editor State
+    let isDrawing = false;
+    let brushMode = 'erase'; // 'erase' or 'restore'
+    let brushSize = 15;
+    let maskCanvas = null;
+    let lastX = 0;
+    let lastY = 0;
+    let lastMouseX = null;
+    let lastMouseY = null;
+    let isHoveringCanvas = false;
+    let zoomLevel = 1.0;
+
     // DOM References
     const viewSetup = document.getElementById('view-setup');
     const viewProcessing = document.getElementById('view-processing');
     const viewResult = document.getElementById('view-result');
     const viewError = document.getElementById('view-error');
+    const viewEditor = document.getElementById('view-editor');
 
     const selectionCard = document.getElementById('selection-card');
     const statusText = document.getElementById('status-text');
@@ -565,16 +755,44 @@
     const pasteBtn = document.getElementById('paste-btn');
     const downloadBtn = document.getElementById('download-btn');
     const resetBtn = document.getElementById('reset-btn');
+    const editMaskBtn = document.getElementById('edit-mask-btn');
 
     const errorMessage = document.getElementById('error-message');
     const errorBackBtn = document.getElementById('error-back-btn');
 
+    const maskOffsetSlider = document.getElementById('mask-offset-slider');
+    const maskOffsetVal = document.getElementById('mask-offset-val');
+
+    const editorCanvas = document.getElementById('editor-canvas');
+    const btnBrushErase = document.getElementById('btn-brush-erase');
+    const btnBrushRestore = document.getElementById('btn-brush-restore');
+    const brushSizeSlider = document.getElementById('brush-size-slider');
+    const brushSizeVal = document.getElementById('brush-size-val');
+    const editorDoneBtn = document.getElementById('editor-done-btn');
+    const editorCancelBtn = document.getElementById('editor-cancel-btn');
+    const zoomInBtn = document.getElementById('zoom-in-btn');
+    const zoomOutBtn = document.getElementById('zoom-out-btn');
+    const zoomLevelText = document.getElementById('zoom-level-text');
+    const editorScrollWrapper = document.getElementById('editor-scroll-wrapper');
+    const brushCursor = document.getElementById('brush-cursor');
+
     // UI View Transitioner
     function showView(viewToShow) {
-      const views = [viewSetup, viewProcessing, viewResult, viewError];
+      const views = [viewSetup, viewProcessing, viewResult, viewError, viewEditor];
       views.forEach(v => {
-        v.style.display = (v === viewToShow) ? 'flex' : 'none';
+        if (v) {
+          v.style.display = (v === viewToShow) ? 'flex' : 'none';
+        }
       });
+
+      // Resize window depending on the view
+      if (viewToShow === viewEditor) {
+        parent.postMessage({ pluginMessage: { type: 'resize', width: 480, height: 580 } }, '*');
+      } else if (viewToShow === viewResult) {
+        parent.postMessage({ pluginMessage: { type: 'resize', width: 320, height: 460 } }, '*');
+      } else {
+        parent.postMessage({ pluginMessage: { type: 'resize', width: 320, height: 380 } }, '*');
+      }
     }
 
     // Update the visual selection card based on state
@@ -621,6 +839,11 @@
     function resetSetup() {
       currentUploadedFile = null;
       processedBlob = null;
+      originalImageBlob = null;
+      baseForegroundBlob = null;
+      originalImgElement = null;
+      foregroundImgElement = null;
+      baseMaskAlpha = null;
       if (resultImage.src) {
         URL.revokeObjectURL(resultImage.src);
         resultImage.src = "";
@@ -723,8 +946,122 @@
       }
     };
 
+    function loadImage(blob) {
+      return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = (e) => reject(e);
+        img.src = URL.createObjectURL(blob);
+      });
+    }
+
+    function morphMask(alphaArray, width, height, radius, operation) {
+      if (radius <= 0) return alphaArray;
+
+      const size = width * height;
+      const temp = new Uint8Array(size);
+      const out = new Uint8Array(size);
+
+      const compare = operation === 'expand' ? Math.max : Math.min;
+      const initialVal = operation === 'expand' ? 0 : 255;
+
+      // Horizontal pass
+      for (let y = 0; y < height; y++) {
+        const rowOffset = y * width;
+        for (let x = 0; x < width; x++) {
+          let val = initialVal;
+          for (let dx = -radius; dx <= radius; dx++) {
+            const nx = Math.min(Math.max(x + dx, 0), width - 1);
+            val = compare(val, alphaArray[rowOffset + nx]);
+          }
+          temp[rowOffset + x] = val;
+        }
+      }
+
+      // Vertical pass
+      for (let x = 0; x < width; x++) {
+        for (let y = 0; y < height; y++) {
+          let val = initialVal;
+          for (let dy = -radius; dy <= radius; dy++) {
+            const ny = Math.min(Math.max(y + dy, 0), height - 1);
+            val = compare(val, temp[ny * width + x]);
+          }
+          out[y * width + x] = val;
+        }
+      }
+
+      return out;
+    }
+
+    // Apply the mask offset of the slider
+    async function applyMaskOffset(offset) {
+      if (offset === 0 && !maskCanvas) {
+        processedBlob = baseForegroundBlob;
+        const objectUrl = URL.createObjectURL(processedBlob);
+        if (resultImage.src) {
+          URL.revokeObjectURL(resultImage.src);
+        }
+        resultImage.src = objectUrl;
+        return;
+      }
+      if (!baseMaskAlpha || !originalImgElement || morphingInProgress) return;
+      morphingInProgress = true;
+
+      try {
+        const width = originalImgElement.naturalWidth;
+        const height = originalImgElement.naturalHeight;
+        
+        const operation = offset > 0 ? 'expand' : 'contract';
+        const radius = Math.abs(offset);
+        
+        const newAlpha = offset === 0 ? baseMaskAlpha : morphMask(baseMaskAlpha, width, height, radius, operation);
+        
+        const canvasResult = document.createElement('canvas');
+        canvasResult.width = width;
+        canvasResult.height = height;
+        const ctxResult = canvasResult.getContext('2d');
+        
+        ctxResult.drawImage(originalImgElement, 0, 0);
+        const imgData = ctxResult.getImageData(0, 0, width, height);
+        
+        for (let i = 0; i < newAlpha.length; i++) {
+          imgData.data[i * 4 + 3] = newAlpha[i];
+        }
+        ctxResult.putImageData(imgData, 0, 0);
+        
+        canvasResult.toBlob((blob) => {
+          if (blob) {
+            processedBlob = blob;
+            const objectUrl = URL.createObjectURL(blob);
+            if (resultImage.src) {
+              URL.revokeObjectURL(resultImage.src);
+            }
+            resultImage.src = objectUrl;
+          }
+          morphingInProgress = false;
+          
+          // Re-trigger if slider moved in the meantime
+          const currentOffset = parseInt(maskOffsetSlider.value, 10);
+          if (currentOffset !== offset) {
+            applyMaskOffset(currentOffset);
+          }
+        }, 'image/png');
+      } catch (err) {
+        console.error("Error during mask morphing:", err);
+        morphingInProgress = false;
+      }
+    }
+
+    // Slider event listener
+    maskOffsetSlider.addEventListener('input', () => {
+      const offset = parseInt(maskOffsetSlider.value, 10);
+      maskOffsetVal.innerText = (offset > 0 ? "+" : "") + offset + "px";
+      applyMaskOffset(offset);
+    });
+
     // Run background removal process on the given image blob
     async function runBackgroundRemoval(imageBlob) {
+      originalImageBlob = imageBlob;
       showView(viewProcessing);
       progressStatus.innerText = "Warming up the background remover...";
       progressBar.style.width = "0%";
@@ -752,8 +1089,37 @@
         // Run the background removal process
         const resultBlob = await removeBackground(imageBlob, config);
         
+        baseForegroundBlob = resultBlob;
         processedBlob = resultBlob;
         
+        // Reset slider UI
+        maskOffsetSlider.value = 0;
+        maskOffsetVal.innerText = "0px";
+
+        // Pre-cache images for local mask morphology
+        try {
+          originalImgElement = await loadImage(originalImageBlob);
+          foregroundImgElement = await loadImage(baseForegroundBlob);
+          
+          const width = originalImgElement.naturalWidth;
+          const height = originalImgElement.naturalHeight;
+          
+          const canvasFG = document.createElement('canvas');
+          canvasFG.width = width;
+          canvasFG.height = height;
+          const ctxFG = canvasFG.getContext('2d');
+          ctxFG.drawImage(foregroundImgElement, 0, 0);
+          const fgData = ctxFG.getImageData(0, 0, width, height);
+          
+          baseMaskAlpha = new Uint8Array(width * height);
+          for (let i = 0; i < baseMaskAlpha.length; i++) {
+            baseMaskAlpha[i] = fgData.data[i * 4 + 3];
+          }
+        } catch (loadErr) {
+          console.error("Failed to pre-cache images/mask for offset feature:", loadErr);
+          baseMaskAlpha = null;
+        }
+
         // Show output result
         const objectUrl = URL.createObjectURL(resultBlob);
         resultImage.src = objectUrl;
@@ -842,6 +1208,261 @@
       resetSetup();
     });
 
+    // --- MASK BRUSH EDITOR LOGIC ---
+
+    // Enter Edit Mask mode
+    editMaskBtn.addEventListener('click', () => {
+      if (!originalImgElement || !baseMaskAlpha) {
+        parent.postMessage({ pluginMessage: { type: 'notify', message: 'No mask data available to edit.' } }, '*');
+        return;
+      }
+
+      const width = originalImgElement.naturalWidth;
+      const height = originalImgElement.naturalHeight;
+
+      // Initialize mask canvas
+      maskCanvas = document.createElement('canvas');
+      maskCanvas.width = width;
+      maskCanvas.height = height;
+      const maskCtx = maskCanvas.getContext('2d');
+      
+      const maskImgData = maskCtx.createImageData(width, height);
+      for (let i = 0; i < baseMaskAlpha.length; i++) {
+        maskImgData.data[i * 4] = 255;
+        maskImgData.data[i * 4 + 1] = 255;
+        maskImgData.data[i * 4 + 2] = 255;
+        maskImgData.data[i * 4 + 3] = baseMaskAlpha[i];
+      }
+      maskCtx.putImageData(maskImgData, 0, 0);
+
+      // Setup editor screen canvas
+      editorCanvas.width = width;
+      editorCanvas.height = height;
+
+      // Reset brush toolbar UI
+      brushMode = 'erase';
+      btnBrushErase.classList.add('active');
+      btnBrushRestore.classList.remove('active');
+      brushSize = parseInt(brushSizeSlider.value, 10);
+      brushSizeVal.innerText = brushSize + "px";
+
+      showView(viewEditor);
+      
+      // Delay slightly so the container has fully rendered and yields correct bounding client rect
+      setTimeout(() => {
+        zoomLevel = 1.0;
+        updateCanvasZoom();
+      }, 50);
+    });
+
+    function getCanvasCoords(e) {
+      const rect = editorCanvas.getBoundingClientRect();
+      // Calculate how the canvas is scaled in the DOM
+      const scaleX = editorCanvas.width / rect.width;
+      const scaleY = editorCanvas.height / rect.height;
+      return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+      };
+    }
+
+    function updateCanvasZoom() {
+      if (!originalImgElement) return;
+      const containerRect = editorScrollWrapper.getBoundingClientRect();
+      const imgWidth = originalImgElement.naturalWidth;
+      const imgHeight = originalImgElement.naturalHeight;
+
+      // Calculate fit scale (leaving a small 16px border padding)
+      const ratio = Math.min((containerRect.width - 16) / imgWidth, (containerRect.height - 16) / imgHeight) || 1.0;
+      const fitWidth = imgWidth * ratio;
+      const fitHeight = imgHeight * ratio;
+
+      const targetWidth = fitWidth * zoomLevel;
+      const targetHeight = fitHeight * zoomLevel;
+
+      editorCanvas.style.width = targetWidth + 'px';
+      editorCanvas.style.height = targetHeight + 'px';
+
+      if (zoomLevel > 1.0) {
+        editorCanvas.style.maxWidth = 'none';
+        editorCanvas.style.maxHeight = 'none';
+      } else {
+        editorCanvas.style.maxWidth = '100%';
+        editorCanvas.style.maxHeight = '100%';
+      }
+
+      zoomLevelText.innerText = Math.round(zoomLevel * 100) + '%';
+      updateBrushCursorSize();
+      redrawEditorCanvas();
+    }
+
+    function updateBrushCursorSize() {
+      if (!editorCanvas || !brushCursor) return;
+      const rect = editorCanvas.getBoundingClientRect();
+      const scale = rect.width / editorCanvas.width || 1.0;
+      const visualDiameter = brushSize * 2 * scale;
+      brushCursor.style.width = visualDiameter + 'px';
+      brushCursor.style.height = visualDiameter + 'px';
+    }
+
+    function redrawEditorCanvas() {
+      if (!editorCanvas || !originalImgElement || !maskCanvas) return;
+      const ctx = editorCanvas.getContext('2d');
+      const w = editorCanvas.width;
+      const h = editorCanvas.height;
+
+      // Clear (shows background CSS checkered pattern)
+      ctx.clearRect(0, 0, w, h);
+
+      // 1. Draw ghost original image (0.35 opacity)
+      ctx.globalAlpha = 0.35;
+      ctx.drawImage(originalImgElement, 0, 0, w, h);
+      ctx.globalAlpha = 1.0;
+
+      // 2. Draw masked foreground (100% opacity)
+      const tempCanvas = document.createElement('canvas');
+      tempCanvas.width = w;
+      tempCanvas.height = h;
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCtx.drawImage(originalImgElement, 0, 0, w, h);
+      tempCtx.globalCompositeOperation = 'destination-in';
+      tempCtx.drawImage(maskCanvas, 0, 0, w, h);
+
+      ctx.drawImage(tempCanvas, 0, 0);
+    }
+
+    // Zoom Buttons Event Listeners
+    zoomInBtn.addEventListener('click', () => {
+      if (zoomLevel < 4.0) {
+        zoomLevel += 0.25;
+        updateCanvasZoom();
+      }
+    });
+
+    zoomOutBtn.addEventListener('click', () => {
+      if (zoomLevel > 0.5) {
+        zoomLevel -= 0.25;
+        updateCanvasZoom();
+      }
+    });
+
+    // Brush Mode toggles (Segmented Control)
+    btnBrushErase.addEventListener('click', () => {
+      brushMode = 'erase';
+      btnBrushErase.classList.add('active');
+      btnBrushRestore.classList.remove('active');
+    });
+
+    btnBrushRestore.addEventListener('click', () => {
+      brushMode = 'restore';
+      btnBrushRestore.classList.add('active');
+      btnBrushErase.classList.remove('active');
+    });
+
+    // Brush Size Slider
+    brushSizeSlider.addEventListener('input', () => {
+      brushSize = parseInt(brushSizeSlider.value, 10);
+      brushSizeVal.innerText = brushSize + "px";
+      updateBrushCursorSize();
+      redrawEditorCanvas();
+    });
+
+    // Custom Brush Cursor hover & position tracking over the viewport scroll wrapper
+    editorScrollWrapper.addEventListener('mousemove', (e) => {
+      brushCursor.style.left = e.clientX + 'px';
+      brushCursor.style.top = e.clientY + 'px';
+    });
+
+    editorScrollWrapper.addEventListener('mouseenter', () => {
+      brushCursor.style.display = 'block';
+      updateBrushCursorSize();
+    });
+
+    editorScrollWrapper.addEventListener('mouseleave', () => {
+      brushCursor.style.display = 'none';
+    });
+
+    // Drawing Event Handlers
+    editorCanvas.addEventListener('mousedown', (e) => {
+      isDrawing = true;
+      const coords = getCanvasCoords(e);
+      lastX = coords.x;
+      lastY = coords.y;
+      
+      // Perform a single point click action
+      drawOnMask(coords.x, coords.y, coords.x, coords.y);
+    });
+
+    editorCanvas.addEventListener('mousemove', (e) => {
+      if (isDrawing) {
+        const coords = getCanvasCoords(e);
+        drawOnMask(lastX, lastY, coords.x, coords.y);
+        lastX = coords.x;
+        lastY = coords.y;
+      }
+    });
+
+    window.addEventListener('mouseup', () => {
+      isDrawing = false;
+    });
+
+    function drawOnMask(x1, y1, x2, y2) {
+      if (!maskCanvas) return;
+      const maskCtx = maskCanvas.getContext('2d');
+      
+      maskCtx.beginPath();
+      maskCtx.lineWidth = brushSize * 2; // Brush size is radius, so diameter is lineWidth
+      maskCtx.lineCap = 'round';
+      maskCtx.lineJoin = 'round';
+      
+      if (brushMode === 'erase') {
+        maskCtx.globalCompositeOperation = 'destination-out';
+        // Stroke color doesn't matter for destination-out
+        maskCtx.strokeStyle = 'rgba(0,0,0,1.0)'; 
+      } else {
+        maskCtx.globalCompositeOperation = 'source-over';
+        maskCtx.strokeStyle = 'rgba(255,255,255,1.0)'; // opaque white restores mask
+      }
+      
+      maskCtx.moveTo(x1, y1);
+      maskCtx.lineTo(x2, y2);
+      maskCtx.stroke();
+      
+      redrawEditorCanvas();
+    }
+
+    // Done & Cancel buttons
+    editorDoneBtn.addEventListener('click', () => {
+      if (!maskCanvas || !originalImgElement) return;
+
+      const width = originalImgElement.naturalWidth;
+      const height = originalImgElement.naturalHeight;
+      const maskCtx = maskCanvas.getContext('2d');
+      const imgData = maskCtx.getImageData(0, 0, width, height);
+
+      // Update baseMaskAlpha from the edited mask canvas
+      baseMaskAlpha = new Uint8Array(width * height);
+      for (let i = 0; i < baseMaskAlpha.length; i++) {
+        baseMaskAlpha[i] = imgData.data[i * 4 + 3];
+      }
+
+      // Re-apply the current slider mask offset to compose processedBlob
+      const currentOffset = parseInt(maskOffsetSlider.value, 10);
+      applyMaskOffset(currentOffset);
+
+      // Hide cursor
+      brushCursor.style.display = 'none';
+      // Return to result view
+      showView(viewResult);
+    });
+
+    editorCancelBtn.addEventListener('click', () => {
+      // Hide cursor
+      brushCursor.style.display = 'none';
+      // Discard changes, return to result view
+      showView(viewResult);
+    });
+
     // Error handler
     function showError(message) {
       errorMessage.innerText = message;
@@ -852,5 +1473,6 @@
       resetSetup();
     });
   </script>
+  <div id="brush-cursor"></div>
 </body>
 </html>

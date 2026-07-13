@@ -61,8 +61,11 @@ figma.ui.onmessage = async (msg) => {
       // Notify the UI that we are exporting
       figma.ui.postMessage({ type: 'exporting-started' });
       
-      // Export node to PNG format bytes
-      const bytes = await node.exportAsync({ format: 'PNG' });
+      // Export node to PNG format bytes at 2x scale for higher resolution/quality
+      const bytes = await node.exportAsync({
+        format: 'PNG',
+        constraint: { type: 'SCALE', value: 2 }
+      });
       
       figma.ui.postMessage({ 
         type: 'exported-image', 
@@ -139,6 +142,10 @@ figma.ui.onmessage = async (msg) => {
   
   else if (msg.type === 'notify') {
     figma.notify(msg.message);
+  }
+  
+  else if (msg.type === 'resize') {
+    figma.ui.resize(msg.width, msg.height);
   }
   
   else if (msg.type === 'close') {
