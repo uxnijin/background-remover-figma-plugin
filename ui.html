@@ -606,16 +606,7 @@
           <img id="result-image" src="" alt="Background removed result preview" />
         </div>
         
-        <!-- Mask Offset Option -->
-        <div class="form-group" style="margin-bottom: 16px;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-            <div class="label" style="margin-bottom: 0;">Mask Offset (Expand / Contract)</div>
-            <span id="mask-offset-val" style="font-size: 11px; font-weight: 600; color: var(--figma-color-text-secondary);">0px</span>
-          </div>
-          <div style="display: flex; align-items: center; gap: 8px;">
-            <input type="range" id="mask-offset-slider" min="-20" max="20" value="0" step="1" style="flex-grow: 1; accent-color: var(--figma-color-bg-brand); cursor: pointer;" />
-          </div>
-        </div>
+
 
         <div class="btn-group">
           <button class="figma-btn primary-btn" id="paste-btn">Paste to Figma</button>
@@ -684,6 +675,17 @@
           </div>
         </div>
 
+        <!-- Brush Feather Slider -->
+        <div class="form-group" style="margin-bottom: 16px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <div class="label" style="margin-bottom: 0;">Feather Edge</div>
+            <span id="brush-feather-val" style="font-size: 11px; font-weight: 600; color: var(--figma-color-text-secondary);">0px</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="range" id="brush-feather-slider" min="0" max="100" value="0" style="flex-grow: 1; accent-color: var(--figma-color-bg-brand); cursor: pointer;" />
+          </div>
+        </div>
+
         <div class="btn-group">
           <button class="figma-btn primary-btn" id="editor-done-btn">Done</button>
           <button class="figma-btn secondary-btn" id="editor-cancel-btn">Cancel</button>
@@ -723,6 +725,7 @@
     let isDrawing = false;
     let brushMode = 'erase'; // 'erase' or 'restore'
     let brushSize = 15;
+    let brushFeather = 0;
     let maskCanvas = null;
     let lastX = 0;
     let lastY = 0;
@@ -760,14 +763,14 @@
     const errorMessage = document.getElementById('error-message');
     const errorBackBtn = document.getElementById('error-back-btn');
 
-    const maskOffsetSlider = document.getElementById('mask-offset-slider');
-    const maskOffsetVal = document.getElementById('mask-offset-val');
 
     const editorCanvas = document.getElementById('editor-canvas');
     const btnBrushErase = document.getElementById('btn-brush-erase');
     const btnBrushRestore = document.getElementById('btn-brush-restore');
     const brushSizeSlider = document.getElementById('brush-size-slider');
     const brushSizeVal = document.getElementById('brush-size-val');
+    const brushFeatherSlider = document.getElementById('brush-feather-slider');
+    const brushFeatherVal = document.getElementById('brush-feather-val');
     const editorDoneBtn = document.getElementById('editor-done-btn');
     const editorCancelBtn = document.getElementById('editor-cancel-btn');
     const zoomInBtn = document.getElementById('zoom-in-btn');
@@ -955,66 +958,13 @@
       });
     }
 
-    function morphMask(alphaArray, width, height, radius, operation) {
-      if (radius <= 0) return alphaArray;
-
-      const size = width * height;
-      const temp = new Uint8Array(size);
-      const out = new Uint8Array(size);
-
-      const compare = operation === 'expand' ? Math.max : Math.min;
-      const initialVal = operation === 'expand' ? 0 : 255;
-
-      // Horizontal pass
-      for (let y = 0; y < height; y++) {
-        const rowOffset = y * width;
-        for (let x = 0; x < width; x++) {
-          let val = initialVal;
-          for (let dx = -radius; dx <= radius; dx++) {
-            const nx = Math.min(Math.max(x + dx, 0), width - 1);
-            val = compare(val, alphaArray[rowOffset + nx]);
-          }
-          temp[rowOffset + x] = val;
-        }
-      }
-
-      // Vertical pass
-      for (let x = 0; x < width; x++) {
-        for (let y = 0; y < height; y++) {
-          let val = initialVal;
-          for (let dy = -radius; dy <= radius; dy++) {
-            const ny = Math.min(Math.max(y + dy, 0), height - 1);
-            val = compare(val, temp[ny * width + x]);
-          }
-          out[y * width + x] = val;
-        }
-      }
-
-      return out;
-    }
-
-    // Apply the mask offset of the slider
-    async function applyMaskOffset(offset) {
-      if (offset === 0 && !maskCanvas) {
-        processedBlob = baseForegroundBlob;
-        const objectUrl = URL.createObjectURL(processedBlob);
-        if (resultImage.src) {
-          URL.revokeObjectURL(resultImage.src);
-        }
-        resultImage.src = objectUrl;
-        return;
-      }
-      if (!baseMaskAlpha || !originalImgElement || morphingInProgress) return;
-      morphingInProgress = true;
+    // Apply current mask canvas changes to processedBlob and result image preview
+    async function applyMaskChanges() {
+      if (!baseMaskAlpha || !originalImgElement) return;
 
       try {
         const width = originalImgElement.naturalWidth;
         const height = originalImgElement.naturalHeight;
-        
-        const operation = offset > 0 ? 'expand' : 'contract';
-        const radius = Math.abs(offset);
-        
-        const newAlpha = offset === 0 ? baseMaskAlpha : morphMask(baseMaskAlpha, width, height, radius, operation);
         
         const canvasResult = document.createElement('canvas');
         canvasResult.width = width;
@@ -1024,8 +974,8 @@
         ctxResult.drawImage(originalImgElement, 0, 0);
         const imgData = ctxResult.getImageData(0, 0, width, height);
         
-        for (let i = 0; i < newAlpha.length; i++) {
-          imgData.data[i * 4 + 3] = newAlpha[i];
+        for (let i = 0; i < baseMaskAlpha.length; i++) {
+          imgData.data[i * 4 + 3] = baseMaskAlpha[i];
         }
         ctxResult.putImageData(imgData, 0, 0);
         
@@ -1038,26 +988,11 @@
             }
             resultImage.src = objectUrl;
           }
-          morphingInProgress = false;
-          
-          // Re-trigger if slider moved in the meantime
-          const currentOffset = parseInt(maskOffsetSlider.value, 10);
-          if (currentOffset !== offset) {
-            applyMaskOffset(currentOffset);
-          }
         }, 'image/png');
       } catch (err) {
-        console.error("Error during mask morphing:", err);
-        morphingInProgress = false;
+        console.error("Error applying mask changes:", err);
       }
     }
-
-    // Slider event listener
-    maskOffsetSlider.addEventListener('input', () => {
-      const offset = parseInt(maskOffsetSlider.value, 10);
-      maskOffsetVal.innerText = (offset > 0 ? "+" : "") + offset + "px";
-      applyMaskOffset(offset);
-    });
 
     // Run background removal process on the given image blob
     async function runBackgroundRemoval(imageBlob) {
@@ -1092,9 +1027,7 @@
         baseForegroundBlob = resultBlob;
         processedBlob = resultBlob;
         
-        // Reset slider UI
-        maskOffsetSlider.value = 0;
-        maskOffsetVal.innerText = "0px";
+
 
         // Pre-cache images for local mask morphology
         try {
@@ -1245,6 +1178,8 @@
       btnBrushRestore.classList.remove('active');
       brushSize = parseInt(brushSizeSlider.value, 10);
       brushSizeVal.innerText = brushSize + "px";
+      brushFeather = parseInt(brushFeatherSlider.value, 10);
+      brushFeatherVal.innerText = brushFeather + "px";
 
       showView(viewEditor);
       
@@ -1334,17 +1269,32 @@
     // Zoom Buttons Event Listeners
     zoomInBtn.addEventListener('click', () => {
       if (zoomLevel < 4.0) {
-        zoomLevel += 0.25;
+        zoomLevel = Math.min(4.0, zoomLevel + 0.25);
         updateCanvasZoom();
       }
     });
 
     zoomOutBtn.addEventListener('click', () => {
       if (zoomLevel > 0.5) {
-        zoomLevel -= 0.25;
+        zoomLevel = Math.max(0.5, zoomLevel - 0.25);
         updateCanvasZoom();
       }
     });
+
+    // Trackpad pinch-to-zoom and Ctrl/Cmd + Mouse Wheel Zoom
+    editorScrollWrapper.addEventListener('wheel', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        // Determine zoom direction and perform zoom
+        const zoomFactor = 0.05;
+        if (e.deltaY < 0) {
+          zoomLevel = Math.min(4.0, zoomLevel + zoomFactor);
+        } else {
+          zoomLevel = Math.max(0.5, zoomLevel - zoomFactor);
+        }
+        updateCanvasZoom();
+      }
+    }, { passive: false });
 
     // Brush Mode toggles (Segmented Control)
     btnBrushErase.addEventListener('click', () => {
@@ -1365,6 +1315,12 @@
       brushSizeVal.innerText = brushSize + "px";
       updateBrushCursorSize();
       redrawEditorCanvas();
+    });
+
+    // Brush Feather Slider
+    brushFeatherSlider.addEventListener('input', () => {
+      brushFeather = parseInt(brushFeatherSlider.value, 10);
+      brushFeatherVal.innerText = brushFeather + "px";
     });
 
     // Custom Brush Cursor hover & position tracking over the viewport scroll wrapper
@@ -1417,16 +1373,30 @@
       
       if (brushMode === 'erase') {
         maskCtx.globalCompositeOperation = 'destination-out';
-        // Stroke color doesn't matter for destination-out
-        maskCtx.strokeStyle = 'rgba(0,0,0,1.0)'; 
+        maskCtx.strokeStyle = 'rgba(0,0,0,1.0)';
+        if (brushFeather > 0) {
+          maskCtx.shadowBlur = brushFeather;
+          maskCtx.shadowColor = 'rgba(0,0,0,1.0)';
+        } else {
+          maskCtx.shadowBlur = 0;
+        }
       } else {
         maskCtx.globalCompositeOperation = 'source-over';
         maskCtx.strokeStyle = 'rgba(255,255,255,1.0)'; // opaque white restores mask
+        if (brushFeather > 0) {
+          maskCtx.shadowBlur = brushFeather;
+          maskCtx.shadowColor = 'rgba(255,255,255,1.0)';
+        } else {
+          maskCtx.shadowBlur = 0;
+        }
       }
       
       maskCtx.moveTo(x1, y1);
       maskCtx.lineTo(x2, y2);
       maskCtx.stroke();
+      
+      // Reset shadowBlur so it doesn't affect other canvas operations
+      maskCtx.shadowBlur = 0;
       
       redrawEditorCanvas();
     }
@@ -1446,9 +1416,8 @@
         baseMaskAlpha[i] = imgData.data[i * 4 + 3];
       }
 
-      // Re-apply the current slider mask offset to compose processedBlob
-      const currentOffset = parseInt(maskOffsetSlider.value, 10);
-      applyMaskOffset(currentOffset);
+      // Apply the mask edits to compose processedBlob
+      applyMaskChanges();
 
       // Hide cursor
       brushCursor.style.display = 'none';
